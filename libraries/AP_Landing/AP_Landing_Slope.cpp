@@ -147,6 +147,16 @@ bool AP_Landing::type_slope_verify_land(const Location &prev_WP_loc, Location &n
         disarm_if_autoland_complete_fn();
     }
 
+    // perform touch_and_go if enabled
+    float airspeed;
+    if (!flags.commanded_go_around &&
+        disarm_delay == 42 &&     // magic number LAND_DISARMDELAY=42 to enable it
+        ahrs.airspeed_estimate(&airspeed) &&
+        airspeed < (float)aparm.airspeed_min*0.75f && // have reached 75% of stall airspeed
+        ahrs.groundspeed() < (float)aparm.airspeed_min*0.5f && // ground speed has slowed to < 50% stall speed
+        fabsf(ahrs.yaw_sensor - land_bearing_cd) < 1500) { // still roughly lined up with runway by 15deg (weak crash-land detector)
+        flags.commanded_go_around = true;
+    }
     /*
       we return false as a landing mission item never completes
 
